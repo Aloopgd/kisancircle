@@ -109,3 +109,43 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
 }
+
+// Test 6 (Security check): Calling functions before initialization must fail.
+#[test]
+#[should_panic(expected = "contract not initialized")]
+fn test_uninitialized_call_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register_contract(None, KisanCircle);
+    let client = KisanCircleClient::new(&env, &contract_id);
+    let farmer = Address::generate(&env);
+
+    client.join_circle(&farmer);
+}
+
+// Test 7 (Security check): Non-members cannot deposit.
+#[test]
+#[should_panic(expected = "not a member")]
+fn test_non_member_deposit_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+    client.deposit(&farmer, &100i128);
+}
+
+// Test 8 (Security check): Loan repayment cannot exceed outstanding amount.
+#[test]
+#[should_panic(expected = "repayment amount exceeds outstanding loan")]
+fn test_repay_loan_exceeding_outstanding_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+
+    client.join_circle(&farmer);
+    client.deposit(&farmer, &200i128);
+    client.request_loan(&farmer, &100i128);
+    client.repay_loan(&farmer, &150i128);
+}

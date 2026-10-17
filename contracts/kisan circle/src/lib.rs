@@ -39,6 +39,12 @@ pub struct KisanCircle;
 
 #[contractimpl]
 impl KisanCircle {
+    fn require_initialized(env: &Env) {
+        if !env.storage().instance().has(&DataKey::Admin) {
+            panic!("not initialized");
+        }
+    }
+
     /// Sets up the circle: records the admin (cooperative coordinator)
     /// and the standard weekly contribution amount. Can only run once.
     pub fn initialize(env: Env, admin: Address, contribution_amount: i128) {
@@ -46,6 +52,9 @@ impl KisanCircle {
 
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("already initialized");
+        }
+        if contribution_amount <= 0 {
+            panic!("contribution amount must be positive");
         }
 
         env.storage().instance().set(&DataKey::Admin, &admin);
@@ -62,6 +71,7 @@ impl KisanCircle {
     /// zeroed savings balance to start contributing to.
     pub fn join_circle(env: Env, member: Address) {
         member.require_auth();
+        Self::require_initialized(&env);
 
         let mut members: Vec<Address> = env
             .storage()
@@ -83,6 +93,7 @@ impl KisanCircle {
     /// a farmer takes weekly instead of walking cash to a treasurer.
     pub fn deposit(env: Env, member: Address, amount: i128) {
         member.require_auth();
+        Self::require_initialized(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -102,6 +113,7 @@ impl KisanCircle {
     /// A member cannot open a second loan while one is still active.
     pub fn request_loan(env: Env, member: Address, amount: i128) {
         member.require_auth();
+        Self::require_initialized(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -140,6 +152,7 @@ impl KisanCircle {
     /// for other members' loans. Fully repaying closes the loan.
     pub fn repay_loan(env: Env, member: Address, amount: i128) {
         member.require_auth();
+        Self::require_initialized(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }

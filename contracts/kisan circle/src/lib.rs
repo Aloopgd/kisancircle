@@ -44,6 +44,10 @@ impl KisanCircle {
     pub fn initialize(env: Env, admin: Address, contribution_amount: i128) {
         admin.require_auth();
 
+        if contribution_amount <= 0 {
+            panic!("contribution amount must be positive");
+        }
+
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("already initialized");
         }
@@ -154,7 +158,11 @@ impl KisanCircle {
             panic!("no active loan");
         }
 
-        let applied = if amount >= loan.outstanding {
+        if amount > loan.outstanding {
+            panic!("repayment amount exceeds outstanding loan");
+        }
+
+        let applied = if amount == loan.outstanding {
             let repaid = loan.outstanding;
             loan.outstanding = 0;
             loan.active = false;

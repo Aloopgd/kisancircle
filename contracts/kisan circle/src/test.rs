@@ -109,3 +109,32 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
 }
+
+// Test 6 (Security validation): initializing with zero or negative contribution amount fails.
+#[test]
+#[should_panic(expected = "contribution amount must be positive")]
+fn test_initialize_non_positive_contribution_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register_contract(None, KisanCircle);
+    let client = KisanCircleClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+
+    client.initialize(&admin, &0i128);
+}
+
+// Test 7 (Security validation): repaying an amount greater than outstanding loan balance fails.
+#[test]
+#[should_panic(expected = "repayment amount exceeds outstanding loan")]
+fn test_repay_loan_exceeds_outstanding_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+
+    client.join_circle(&farmer);
+    client.deposit(&farmer, &200i128);
+    client.request_loan(&farmer, &100i128);
+    client.repay_loan(&farmer, &150i128);
+}

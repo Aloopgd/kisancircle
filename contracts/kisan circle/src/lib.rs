@@ -59,7 +59,7 @@ impl KisanCircle {
     }
 
     /// Registers a farmer as a member of the circle, giving them a
-    /// zeroed savings balance to start contributing to.
+    /// zeroed savings balance if they do not already have one.
     pub fn join_circle(env: Env, member: Address) {
         member.require_auth();
 
@@ -72,19 +72,31 @@ impl KisanCircle {
         if !members.contains(&member) {
             members.push_back(member.clone());
             env.storage().instance().set(&DataKey::Members, &members);
-            env.storage()
-                .persistent()
-                .set(&DataKey::Balance(member.clone()), &0i128);
+
+            // Security: only initialize balance if key does not exist to prevent overwriting existing balance
+            let balance_key = DataKey::Balance(member.clone());
+            if !env.storage().persistent().has(&balance_key) {
+                env.storage().persistent().set(&balance_key, &0i128);
+            }
         }
     }
 
     /// Records a member's deposit into their savings balance and adds
-    /// it to the shared pool available for loans. This is the action
-    /// a farmer takes weekly instead of walking cash to a treasurer.
+    /// it to the shared pool available for loans.
     pub fn deposit(env: Env, member: Address, amount: i128) {
         member.require_auth();
         if amount <= 0 {
             panic!("amount must be positive");
+        }
+
+        // Security check: verify caller is an active registered circle member
+        let members: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Members)
+            .unwrap_or(Vec::new(&env));
+        if !members.contains(&member) {
+            panic!("member must join circle first");
         }
 
         let balance_key = DataKey::Balance(member.clone());

@@ -109,3 +109,16 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
 }
+
+// Test 6 (Security check): deposit from an unregistered member fails.
+#[test]
+#[should_panic(expected = "member must join circle first")]
+fn test_deposit_unregistered_member_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+
+    // Attempt to deposit without calling join_circle first
+    client.deposit(&farmer, &100i128);
+}

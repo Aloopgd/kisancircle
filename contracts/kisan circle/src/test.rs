@@ -109,3 +109,22 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
 }
+
+// Test 6 (Security test): overflow in max loan calculation panics safely
+#[test]
+#[should_panic(expected = "overflow in loan cap calculation")]
+fn test_loan_overflow_protection() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+
+    client.join_circle(&farmer);
+    // Artificially large balance that would overflow when multiplied by 80
+    // e.g. i128::MAX / 2
+    let huge_amount = i128::MAX / 2;
+    // Set balance directly or deposit if possible (deposit would add to balance & pool)
+    // Here deposit with huge_amount will add to balance
+    client.deposit(&farmer, &huge_amount);
+    client.request_loan(&farmer, &100i128);
+}

@@ -108,7 +108,11 @@ impl KisanCircle {
 
         let balance_key = DataKey::Balance(member.clone());
         let balance: i128 = env.storage().persistent().get(&balance_key).unwrap_or(0);
-        let max_loan = balance * 80 / 100;
+        // Security check: Use checked arithmetic to prevent potential integer overflow during multiplication.
+        let max_loan = balance
+            .checked_mul(80)
+            .and_then(|val| val.checked_div(100))
+            .expect("overflow in loan cap calculation");
         if amount > max_loan {
             panic!("loan exceeds 80% of savings");
         }

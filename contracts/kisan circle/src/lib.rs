@@ -34,6 +34,12 @@ pub struct LoanInfo {
     pub active: bool,
 }
 
+fn require_initialized(env: &Env) {
+    if !env.storage().instance().has(&DataKey::Admin) {
+        panic!("not initialized");
+    }
+}
+
 #[contract]
 pub struct KisanCircle;
 
@@ -46,6 +52,10 @@ impl KisanCircle {
 
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("already initialized");
+        }
+
+        if contribution_amount <= 0 {
+            panic!("contribution amount must be positive");
         }
 
         env.storage().instance().set(&DataKey::Admin, &admin);
@@ -62,6 +72,7 @@ impl KisanCircle {
     /// zeroed savings balance to start contributing to.
     pub fn join_circle(env: Env, member: Address) {
         member.require_auth();
+        require_initialized(&env);
 
         let mut members: Vec<Address> = env
             .storage()
@@ -83,6 +94,7 @@ impl KisanCircle {
     /// a farmer takes weekly instead of walking cash to a treasurer.
     pub fn deposit(env: Env, member: Address, amount: i128) {
         member.require_auth();
+        require_initialized(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -102,6 +114,7 @@ impl KisanCircle {
     /// A member cannot open a second loan while one is still active.
     pub fn request_loan(env: Env, member: Address, amount: i128) {
         member.require_auth();
+        require_initialized(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -140,6 +153,7 @@ impl KisanCircle {
     /// for other members' loans. Fully repaying closes the loan.
     pub fn repay_loan(env: Env, member: Address, amount: i128) {
         member.require_auth();
+        require_initialized(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }

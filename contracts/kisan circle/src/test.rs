@@ -4,7 +4,7 @@ use super::*;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::Env;
 
-fn setup(env: &Env) -> (KisanCircleClient, Address, Address) {
+fn setup(env: &Env) -> (KisanCircleClient<'_>, Address, Address) {
     let contract_id = env.register_contract(None, KisanCircle);
     let client = KisanCircleClient::new(env, &contract_id);
     let admin = Address::generate(env);
@@ -108,4 +108,32 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.active, false);
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
+}
+
+// Test 6 (Security check): methods fail if contract is uninitialized
+#[test]
+#[should_panic(expected = "not initialized")]
+fn test_uninitialized_join_circle_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register_contract(None, KisanCircle);
+    let client = KisanCircleClient::new(&env, &contract_id);
+    let farmer = Address::generate(&env);
+
+    client.join_circle(&farmer);
+}
+
+// Test 7 (Security check): initialize fails with non-positive contribution amount
+#[test]
+#[should_panic(expected = "contribution amount must be positive")]
+fn test_initialize_invalid_contribution_amount_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register_contract(None, KisanCircle);
+    let client = KisanCircleClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+
+    client.initialize(&admin, &0i128);
 }

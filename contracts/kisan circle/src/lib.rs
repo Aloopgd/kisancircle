@@ -47,6 +47,9 @@ impl KisanCircle {
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("already initialized");
         }
+        if contribution_amount <= 0 {
+            panic!("contribution amount must be positive");
+        }
 
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage()
@@ -58,9 +61,16 @@ impl KisanCircle {
         env.storage().instance().set(&DataKey::Members, &members);
     }
 
+    fn require_initialized(env: &Env) {
+        if !env.storage().instance().has(&DataKey::Admin) {
+            panic!("not initialized");
+        }
+    }
+
     /// Registers a farmer as a member of the circle, giving them a
     /// zeroed savings balance to start contributing to.
     pub fn join_circle(env: Env, member: Address) {
+        Self::require_initialized(&env);
         member.require_auth();
 
         let mut members: Vec<Address> = env
@@ -82,6 +92,7 @@ impl KisanCircle {
     /// it to the shared pool available for loans. This is the action
     /// a farmer takes weekly instead of walking cash to a treasurer.
     pub fn deposit(env: Env, member: Address, amount: i128) {
+        Self::require_initialized(&env);
         member.require_auth();
         if amount <= 0 {
             panic!("amount must be positive");
@@ -101,6 +112,7 @@ impl KisanCircle {
     /// of their balance, and only if the shared pool has liquidity.
     /// A member cannot open a second loan while one is still active.
     pub fn request_loan(env: Env, member: Address, amount: i128) {
+        Self::require_initialized(&env);
         member.require_auth();
         if amount <= 0 {
             panic!("amount must be positive");
@@ -139,6 +151,7 @@ impl KisanCircle {
     /// repaid flows back into the shared pool, making it available
     /// for other members' loans. Fully repaying closes the loan.
     pub fn repay_loan(env: Env, member: Address, amount: i128) {
+        Self::require_initialized(&env);
         member.require_auth();
         if amount <= 0 {
             panic!("amount must be positive");

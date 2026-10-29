@@ -63,11 +63,15 @@ impl KisanCircle {
     pub fn join_circle(env: Env, member: Address) {
         member.require_auth();
 
+        if !env.storage().instance().has(&DataKey::Admin) {
+            panic!("not initialized");
+        }
+
         let mut members: Vec<Address> = env
             .storage()
             .instance()
             .get(&DataKey::Members)
-            .unwrap_or(Vec::new(&env));
+            .expect("not initialized");
 
         if !members.contains(&member) {
             members.push_back(member.clone());
@@ -85,6 +89,20 @@ impl KisanCircle {
         member.require_auth();
         if amount <= 0 {
             panic!("amount must be positive");
+        }
+
+        if !env.storage().instance().has(&DataKey::Admin) {
+            panic!("not initialized");
+        }
+
+        let members: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Members)
+            .expect("not initialized");
+
+        if !members.contains(&member) {
+            panic!("not a member");
         }
 
         let balance_key = DataKey::Balance(member.clone());

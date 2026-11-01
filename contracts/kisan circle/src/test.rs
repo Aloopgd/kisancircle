@@ -4,7 +4,7 @@ use super::*;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::Env;
 
-fn setup(env: &Env) -> (KisanCircleClient, Address, Address) {
+fn setup(env: &Env) -> (KisanCircleClient<'_>, Address, Address) {
     let contract_id = env.register_contract(None, KisanCircle);
     let client = KisanCircleClient::new(env, &contract_id);
     let admin = Address::generate(env);
@@ -108,4 +108,32 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.active, false);
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
+}
+
+// Test 6 (Security): a non-member cannot deposit funds.
+#[test]
+#[should_panic(expected = "not a member")]
+fn test_deposit_non_member_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, _farmer) = setup(&env);
+    let non_member = Address::generate(&env);
+
+    client.deposit(&non_member, &100i128);
+}
+
+// Test 7 (Security): a non-member cannot request a loan.
+#[test]
+#[should_panic(expected = "not a member")]
+fn test_loan_non_member_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+    client.join_circle(&farmer);
+    client.deposit(&farmer, &100i128);
+
+    let non_member = Address::generate(&env);
+    client.request_loan(&non_member, &50i128);
 }

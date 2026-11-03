@@ -88,11 +88,21 @@ impl KisanCircle {
         }
 
         let balance_key = DataKey::Balance(member.clone());
+        // Security check: ensure address has registered via `join_circle` before accepting deposits.
+        // This prevents unregistered non-members from bypassing the circle directory and accumulating borrowing capacity.
+        if !env.storage().persistent().has(&balance_key) {
+            panic!("not a circle member");
+        }
+
         let mut balance: i128 = env.storage().persistent().get(&balance_key).unwrap_or(0);
         balance += amount;
         env.storage().persistent().set(&balance_key, &balance);
 
-        let mut pool: i128 = env.storage().instance().get(&DataKey::TotalPool).unwrap_or(0);
+        let mut pool: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalPool)
+            .unwrap_or(0);
         pool += amount;
         env.storage().instance().set(&DataKey::TotalPool, &pool);
     }
@@ -114,13 +124,21 @@ impl KisanCircle {
         }
 
         let loan_key = DataKey::Loan(member.clone());
-        if let Some(existing) = env.storage().persistent().get::<DataKey, LoanInfo>(&loan_key) {
+        if let Some(existing) = env
+            .storage()
+            .persistent()
+            .get::<DataKey, LoanInfo>(&loan_key)
+        {
             if existing.active {
                 panic!("existing loan must be repaid first");
             }
         }
 
-        let mut pool: i128 = env.storage().instance().get(&DataKey::TotalPool).unwrap_or(0);
+        let mut pool: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalPool)
+            .unwrap_or(0);
         if amount > pool {
             panic!("insufficient pool liquidity");
         }
@@ -164,7 +182,11 @@ impl KisanCircle {
             amount
         };
 
-        let mut pool: i128 = env.storage().instance().get(&DataKey::TotalPool).unwrap_or(0);
+        let mut pool: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalPool)
+            .unwrap_or(0);
         pool += applied;
         env.storage().instance().set(&DataKey::TotalPool, &pool);
 
@@ -193,7 +215,10 @@ impl KisanCircle {
 
     /// Read-only: total liquidity currently available in the shared pool.
     pub fn get_pool(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalPool).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalPool)
+            .unwrap_or(0)
     }
 }
 

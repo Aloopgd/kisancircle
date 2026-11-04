@@ -109,3 +109,29 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
 }
+
+// Test 6 (Security: circle membership): depositing without joining circle must fail.
+#[test]
+#[should_panic(expected = "member must join circle before depositing")]
+fn test_deposit_without_joining_circle_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+    // Attempting to deposit without client.join_circle(&farmer)
+    client.deposit(&farmer, &100i128);
+}
+
+// Test 7 (Security: circle initialization): joining circle before initialization must fail.
+#[test]
+#[should_panic(expected = "not initialized")]
+fn test_join_circle_uninitialized_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register_contract(None, KisanCircle);
+    let client = KisanCircleClient::new(&env, &contract_id);
+    let farmer = Address::generate(&env);
+
+    client.join_circle(&farmer);
+}

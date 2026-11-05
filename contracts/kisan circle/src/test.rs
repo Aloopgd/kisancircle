@@ -109,3 +109,17 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
 }
+
+// Test 6 (Security verification): an unregistered address cannot deposit
+// funds into the savings pool without joining the circle first.
+#[test]
+#[should_panic(expected = "member not registered in circle")]
+fn test_deposit_unregistered_member_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, _farmer) = setup(&env);
+    let unregistered = Address::generate(&env);
+
+    client.deposit(&unregistered, &100i128);
+}

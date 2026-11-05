@@ -1,0 +1,4 @@
+## 2025-05-18 - Missing Membership Verification on Deposit in Lending Circle
+**Vulnerability:** The `deposit` function only verified the caller's authorization (`member.require_auth()`) but did not check if the address was registered in `Members` through `join_circle`. This allowed untracked addresses to deposit funds, build collateral, and borrow from the shared pool while remaining invisible to the cooperative membership registry.
+**Learning:** In community/ROSCA smart contracts where state access relies on group membership, each mutating action that alters pool balances or loans must validate membership status directly against registered members rather than assuming only registered members will interact with deposit endpoints.
+**Prevention:** Always enforce membership checks (`members.contains(&member)`) at transaction entrypoints before modifying state or pool totals.

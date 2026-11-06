@@ -44,6 +44,10 @@ impl KisanCircle {
     pub fn initialize(env: Env, admin: Address, contribution_amount: i128) {
         admin.require_auth();
 
+        if contribution_amount <= 0 {
+            panic!("contribution amount must be positive");
+        }
+
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("already initialized");
         }
@@ -78,11 +82,23 @@ impl KisanCircle {
         }
     }
 
+    /// Checks whether an address is a registered circle member.
+    fn require_member(env: &Env, member: &Address) {
+        if !env
+            .storage()
+            .persistent()
+            .has(&DataKey::Balance(member.clone()))
+        {
+            panic!("not a circle member");
+        }
+    }
+
     /// Records a member's deposit into their savings balance and adds
     /// it to the shared pool available for loans. This is the action
     /// a farmer takes weekly instead of walking cash to a treasurer.
     pub fn deposit(env: Env, member: Address, amount: i128) {
         member.require_auth();
+        Self::require_member(&env, &member);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -92,7 +108,11 @@ impl KisanCircle {
         balance += amount;
         env.storage().persistent().set(&balance_key, &balance);
 
-        let mut pool: i128 = env.storage().instance().get(&DataKey::TotalPool).unwrap_or(0);
+        let mut pool: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalPool)
+            .unwrap_or(0);
         pool += amount;
         env.storage().instance().set(&DataKey::TotalPool, &pool);
     }
@@ -102,6 +122,7 @@ impl KisanCircle {
     /// A member cannot open a second loan while one is still active.
     pub fn request_loan(env: Env, member: Address, amount: i128) {
         member.require_auth();
+        Self::require_member(&env, &member);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -114,13 +135,21 @@ impl KisanCircle {
         }
 
         let loan_key = DataKey::Loan(member.clone());
-        if let Some(existing) = env.storage().persistent().get::<DataKey, LoanInfo>(&loan_key) {
+        if let Some(existing) = env
+            .storage()
+            .persistent()
+            .get::<DataKey, LoanInfo>(&loan_key)
+        {
             if existing.active {
                 panic!("existing loan must be repaid first");
             }
         }
 
-        let mut pool: i128 = env.storage().instance().get(&DataKey::TotalPool).unwrap_or(0);
+        let mut pool: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalPool)
+            .unwrap_or(0);
         if amount > pool {
             panic!("insufficient pool liquidity");
         }
@@ -140,6 +169,7 @@ impl KisanCircle {
     /// for other members' loans. Fully repaying closes the loan.
     pub fn repay_loan(env: Env, member: Address, amount: i128) {
         member.require_auth();
+        Self::require_member(&env, &member);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -164,7 +194,11 @@ impl KisanCircle {
             amount
         };
 
-        let mut pool: i128 = env.storage().instance().get(&DataKey::TotalPool).unwrap_or(0);
+        let mut pool: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalPool)
+            .unwrap_or(0);
         pool += applied;
         env.storage().instance().set(&DataKey::TotalPool, &pool);
 
@@ -193,7 +227,10 @@ impl KisanCircle {
 
     /// Read-only: total liquidity currently available in the shared pool.
     pub fn get_pool(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalPool).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalPool)
+            .unwrap_or(0)
     }
 }
 

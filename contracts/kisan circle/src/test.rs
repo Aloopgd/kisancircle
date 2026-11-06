@@ -109,3 +109,53 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
 }
+
+// Test 6 (Security: Membership): non-members cannot deposit.
+#[test]
+#[should_panic(expected = "not a circle member")]
+fn test_non_member_cannot_deposit() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+    // Notice farmer has NOT joined the circle
+    client.deposit(&farmer, &100i128);
+}
+
+// Test 7 (Security: Membership): non-members cannot request loans.
+#[test]
+#[should_panic(expected = "not a circle member")]
+fn test_non_member_cannot_request_loan() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+    // Farmer has NOT joined the circle
+    client.request_loan(&farmer, &50i128);
+}
+
+// Test 8 (Security: Membership): non-members cannot repay loans.
+#[test]
+#[should_panic(expected = "not a circle member")]
+fn test_non_member_cannot_repay_loan() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+    // Farmer has NOT joined the circle
+    client.repay_loan(&farmer, &50i128);
+}
+
+// Test 9 (Security: Validation): initializing with non-positive contribution fails.
+#[test]
+#[should_panic(expected = "contribution amount must be positive")]
+fn test_initialize_with_non_positive_contribution_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register_contract(None, KisanCircle);
+    let client = KisanCircleClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+
+    client.initialize(&admin, &0i128);
+}

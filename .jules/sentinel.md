@@ -1,0 +1,4 @@
+## 2025-05-18 - Circle Membership Authorization on State Mutations
+**Vulnerability:** The `deposit` and `request_loan` functions only authenticated caller signatures via `require_auth()` but did not verify that the caller was a registered circle member in the `Members` vector, allowing arbitrary external addresses to interact with cooperative pooled funds.
+**Learning:** In Soroban contracts, authenticating an address identity (`require_auth`) does not equate to application-level authorization. Registration and role checks must be explicitly enforced against contract state before state transitions occur.
+**Prevention:** Always implement explicit role/membership validation checks (`verify_member`) in conjunction with cryptographic caller authentication before modifying shared state or pool balances.

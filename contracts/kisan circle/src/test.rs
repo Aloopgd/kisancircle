@@ -109,3 +109,27 @@ fn test_full_repayment_restores_pool_liquidity() {
     assert_eq!(loan.outstanding, 0);
     assert_eq!(client.get_pool(), 200i128); // fully restored
 }
+
+// Test 6 (Security): a non-member cannot deposit funds.
+#[test]
+#[should_panic(expected = "not a member")]
+fn test_non_member_cannot_deposit() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+    // Note: farmer did not call join_circle
+    client.deposit(&farmer, &100i128);
+}
+
+// Test 7 (Security): a non-member cannot request a loan.
+#[test]
+#[should_panic(expected = "not a member")]
+fn test_non_member_cannot_request_loan() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+    // Note: farmer did not call join_circle
+    client.request_loan(&farmer, &50i128);
+}

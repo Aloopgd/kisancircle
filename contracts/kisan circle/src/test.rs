@@ -48,6 +48,18 @@ fn test_loan_exceeds_collateral_limit_fails() {
     client.request_loan(&farmer, &90i128); // exceeds 80 cap
 }
 
+// Test: a non-member cannot deposit without joining the circle first.
+#[test]
+#[should_panic(expected = "not a member")]
+fn test_non_member_cannot_deposit() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, _admin, farmer) = setup(&env);
+    // Farmer attempts to deposit without calling join_circle first.
+    client.deposit(&farmer, &100i128);
+}
+
 // Test 3 (State verification): after a deposit and a loan request,
 // the member balance, loan record, and shared pool must all reflect
 // the correct resulting state.
